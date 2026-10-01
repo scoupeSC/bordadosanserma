@@ -1,0 +1,13 @@
+node_modules/
+web/node_modules/
+web/.next/
+out/
+.DS_Store
+*.pem
+
+# Secretos locales (no subir)
+.ENV
+.env
+web/.env.local
+
+# web/.env.production sí va al repo (solo NEXT_PUBLIC_*)

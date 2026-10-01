@@ -1,0 +1,12 @@
+{
+  "name": "hader-ventas-inventario",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:connection": "node scripts/test-connection.mjs",
+    "db:migrate": "node scripts/run-migration.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}
