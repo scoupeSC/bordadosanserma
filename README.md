@@ -22,7 +22,9 @@ npm run db:migrate
 1. Conecta este repositorio en [Netlify](https://app.netlify.com).
 2. No hace falta configurar variables de entorno en el panel: las claves públicas de Supabase van en `web/.env.production` (incluidas en el repo a propósito para uso interno).
 3. Netlify lee `netlify.toml` en la raíz: carpeta base `web`, plugin de Next.js.
-4. En **Site configuration → Build & deploy → Build settings**, deja **Publish directory** vacío (o bórralo si pusiste `web` a mano). Si no, el plugin de Next.js no funciona bien.
+4. En **Site configuration → Build & deploy → Build settings**:
+   - **Publish directory**: **borra** el valor `web` y déjalo **vacío** (si el log dice `publishOrigin: ui` y `publish: .../web`, el deploy fallará o quedará mal).
+   - **Build command** y **Base directory**: déjalos vacíos para que mande `netlify.toml` de la raíz.
 
 ### Error «unrecognized Git contributor» (repo privado)
 
