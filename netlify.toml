@@ -2,7 +2,7 @@
 [build]
   base = "web"
   # install (no ci) evita fallos de lockfile entre versiones de npm en Netlify
-  command = "node -v && npm -v && npm install && npm run build"
+  command = "node -v && npm -v && npm install --include=optional && npm run build"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
