@@ -21,10 +21,15 @@ npm run db:migrate
 
 1. Conecta este repositorio en [Netlify](https://app.netlify.com).
 2. No hace falta configurar variables de entorno en el panel: las claves públicas de Supabase van en `web/.env.production` (incluidas en el repo a propósito para uso interno).
-3. Netlify lee `netlify.toml` en la raíz: carpeta base `web`, plugin de Next.js.
+3. Netlify lee `netlify.toml` en la raíz: carpeta base `web`, plugin de Next.js. El build usa `web/scripts/netlify-build.sh` (instalación limpia en Linux sin lockfile de macOS, para Tailwind v4).
 4. En **Site configuration → Build & deploy → Build settings**:
    - **Publish directory**: **borra** el valor `web` y déjalo **vacío** (si el log dice `publishOrigin: ui` y `publish: .../web`, el deploy fallará o quedará mal).
    - **Build command** y **Base directory**: déjalos vacíos para que mande `netlify.toml` de la raíz.
+5. Tras subir cambios: **Deploys → Trigger deploy → Clear cache and deploy site**.
+
+### Error `@tailwindcss/oxide-linux-x64-gnu` en el build
+
+Significa que Netlify **no está usando** el script nuevo. En el log debe aparecer `bash scripts/netlify-build.sh`, no `npm install --include=optional && npm run build`. Sube a GitHub el commit con `netlify.toml` y `web/scripts/netlify-build.sh` (desde tu Terminal). `web/package-lock.json` ya no va al repo (evita el bug de npm con optional deps en macOS → Linux).
 
 ### Error «unrecognized Git contributor» (repo privado)
 

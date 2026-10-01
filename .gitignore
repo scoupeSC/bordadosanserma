@@ -1,5 +1,7 @@
 node_modules/
 /package-lock.json
+# Lock generado en macOS rompe bins Linux de Tailwind v4 en Netlify (npm/cli#4828)
+web/package-lock.json
 web/node_modules/
 web/.next/
 out/
