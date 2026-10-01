@@ -22,6 +22,7 @@ npm run db:migrate
 1. Conecta este repositorio en [Netlify](https://app.netlify.com).
 2. No hace falta configurar variables de entorno en el panel: las claves públicas de Supabase van en `web/.env.production` (incluidas en el repo a propósito para uso interno).
 3. Netlify lee `netlify.toml` en la raíz: carpeta base `web`, plugin de Next.js.
+4. En **Site configuration → Build & deploy → Build settings**, deja **Publish directory** vacío (o bórralo si pusiste `web` a mano). Si no, el plugin de Next.js no funciona bien.
 
 Tras el deploy, la app usa la misma base de datos Supabase que en local.
 
