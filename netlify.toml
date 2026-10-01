@@ -1,7 +1,9 @@
 # Monorepo: la app vive en web/
 [build]
   base = "web"
-  # scripts/netlify-build.sh: install limpia en Linux (Tailwind oxide); no usar comando viejo del UI
+  # Obligatorio con base=web: el UI no puede usar publish=web (misma ruta que base → falla el plugin Next)
+  publish = ".next"
+  # scripts/netlify-build.sh: install limpia en Linux (Tailwind oxide)
   command = "bash scripts/netlify-build.sh"
 
 [[plugins]]

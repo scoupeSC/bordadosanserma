@@ -23,7 +23,7 @@ npm run db:migrate
 2. No hace falta configurar variables de entorno en el panel: las claves públicas de Supabase van en `web/.env.production` (incluidas en el repo a propósito para uso interno).
 3. Netlify lee `netlify.toml` en la raíz: carpeta base `web`, plugin de Next.js. El build usa `web/scripts/netlify-build.sh` (instalación limpia en Linux sin lockfile de macOS, para Tailwind v4).
 4. En **Site configuration → Build & deploy → Build settings**:
-   - **Publish directory**: **borra** el valor `web` y déjalo **vacío** (si el log dice `publishOrigin: ui` y `publish: .../web`, el deploy fallará o quedará mal).
+   - **Publish directory**: déjalo **vacío** o borra `web`. Si el log dice `publishOrigin: ui` y `publish: .../web`, el plugin Next falla. `netlify.toml` fija `publish = ".next"` (relativo a `web/`).
    - **Build command** y **Base directory**: déjalos vacíos para que mande `netlify.toml` de la raíz.
 5. Tras subir cambios: **Deploys → Trigger deploy → Clear cache and deploy site**.
 
