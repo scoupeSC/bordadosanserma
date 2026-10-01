@@ -24,6 +24,22 @@ npm run db:migrate
 3. Netlify lee `netlify.toml` en la raíz: carpeta base `web`, plugin de Next.js.
 4. En **Site configuration → Build & deploy → Build settings**, deja **Publish directory** vacío (o bórralo si pusiste `web` a mano). Si no, el plugin de Next.js no funciona bien.
 
+### Error «unrecognized Git contributor» (repo privado)
+
+Netlify en plan gratuito solo permite **un** contributor en repos **privados**. Cuenta también los `Co-authored-by:` de commits viejos (p. ej. Cursor), aunque el último commit sea solo tuyo.
+
+**Opción A — recomendada:** un solo commit limpio (desde tu Terminal, no Cursor):
+
+```bash
+git config user.email "EL_MISMO_EMAIL_QUE_GITHUB"   # ver github.com/settings/emails
+chmod +x scripts/netlify-fix-contributors.sh
+./scripts/netlify-fix-contributors.sh
+```
+
+**Opción B:** en Netlify → **Team settings → Members → Git contributors**, vincula el email `geiner.martinez39145@ucaldas.edu.co` (o el que uses en `git log`) con tu miembro del equipo.
+
+**Opción C:** en GitHub → **Settings → General → Danger zone** → hacer el repo **Public** (desaparece el límite de 1 contributor en muchos casos).
+
 Tras el deploy, la app usa la misma base de datos Supabase que en local.
 
 ## Estructura
