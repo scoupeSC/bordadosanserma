@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, LayoutDashboard, Plus } from "lucide-react";
 import { listProducts } from "@/app/actions/products";
 import { PageHeader } from "@/components/layout/page-header";
 import { navGroups, navIcons } from "@/components/layout/nav-items";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { LinkButton } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import { formatMoney } from "@/lib/format";
@@ -29,7 +30,9 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <InstallAppButton />
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <StatCard
           label="Productos activos"
           value={String(products.length)}

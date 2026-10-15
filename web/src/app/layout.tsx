@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 
 const body = Plus_Jakarta_Sans({
@@ -16,6 +17,15 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Hader — Ventas e inventario",
   description: "Sistema modular de ventas e inventario",
+  applicationName: "Hader",
+  appleWebApp: {
+    capable: true,
+    title: "Hader",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
@@ -28,7 +38,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${body.variable} ${mono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }
