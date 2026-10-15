@@ -23,6 +23,14 @@ const MIGRATION_HINT =
 export async function getProductTagCatalog(productId: string): Promise<AttributeGroup[]> {
   const supabase = createSupabaseServer();
 
+  let groups: {
+    id: string;
+    name: string;
+    slug: string;
+    display_order: number;
+    product_id?: string | null;
+  }[] | null = null;
+
   const groupsRes = await supabase
     .from("attribute_groups")
     .select("id, name, slug, display_order, product_id")
@@ -37,12 +45,11 @@ export async function getProductTagCatalog(productId: string): Promise<Attribute
       .eq("is_active", true)
       .order("display_order", { ascending: true });
     if (legacy.error) throw new Error(legacy.error.message);
-    groupsRes.data = legacy.data;
-    groupsRes.error = null;
+    groups = legacy.data;
+  } else {
+    if (groupsRes.error) throw new Error(groupsRes.error.message);
+    groups = groupsRes.data;
   }
-
-  if (groupsRes.error) throw new Error(groupsRes.error.message);
-  const groups = groupsRes.data;
 
   const { data: groupLabels } = await supabase
     .from("product_attribute_group_labels")
