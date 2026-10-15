@@ -7,6 +7,7 @@ import { DeleteExpenseButton } from "@/components/gastos/delete-expense-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
+import { bogotaTodayDateKey } from "@/lib/format";
 
 export type ExpenseFormInitial = {
   description: string;
@@ -20,14 +21,6 @@ type Props = {
   initial?: ExpenseFormInitial;
 };
 
-function todayIsoDate() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 export function ExpenseForm({ mode, expenseId, initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -35,7 +28,7 @@ export function ExpenseForm({ mode, expenseId, initial }: Props) {
   const [amount, setAmount] = useState(
     initial?.amount != null ? String(initial.amount) : ""
   );
-  const [expenseDate, setExpenseDate] = useState(initial?.expenseDate ?? todayIsoDate());
+  const [expenseDate, setExpenseDate] = useState(initial?.expenseDate ?? bogotaTodayDateKey());
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = (e: React.FormEvent) => {

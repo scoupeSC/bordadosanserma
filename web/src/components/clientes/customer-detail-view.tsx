@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { CustomerDetail, CustomerSaleSummary } from "@/app/actions/customers";
 import { registerSalePayment } from "@/app/actions/payments";
+import { DeleteCustomerButton } from "@/components/clientes/delete-customer-button";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Chip, orderTone, paymentTone } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -143,10 +144,11 @@ export function CustomerDetailView({ initial }: { initial: CustomerDetail }) {
               </ul>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
             <LinkButton href={`/clientes/${customer.id}/editar`} variant="secondary" size="sm">
               Editar
             </LinkButton>
+            <DeleteCustomerButton id={customer.id} name={customer.name} compact />
             <LinkButton href={`/ventas/nueva?cliente=${customer.id}`} variant="accent" size="sm">
               <Plus className="h-4 w-4" />
               Nueva venta

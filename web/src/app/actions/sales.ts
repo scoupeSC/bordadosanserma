@@ -2,12 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { getAttributeCatalog } from "@/app/actions/catalog";
-import {
-  parseVariantGroups,
-  variantGroupsFromStoreCatalog,
-  type ProductAttributeLink,
-} from "@/lib/product-variants";
+import { getProductTagCatalog } from "@/app/actions/product-tags";
+import type { AttributeGroup } from "@/lib/types";
 import { saleItemsToCartLines } from "@/lib/sale-from-db";
 import type { CartLine } from "@/lib/sale-cart";
 import type { OrderStatus, PaymentStatus } from "@/lib/sale-labels";
@@ -23,6 +19,7 @@ const PRODUCT_FOR_SALE_SELECT = `
   unit_price,
   product_attribute_options (
     option_id,
+    label,
     attribute_options (
       id,
       label,
@@ -124,23 +121,29 @@ function mapCheckoutItems(items: CheckoutPayload["items"]) {
   }));
 }
 
-function mapProductForSale(
-  row: {
-    id: string;
-    name: string;
-    image_url?: string | null;
-    unit_price: number;
-    product_attribute_options?: ProductAttributeLink[] | null;
-  },
-  storeVariantGroups: ProductVariantGroup[]
-): ProductForSale {
-  const specific = parseVariantGroups(row.product_attribute_options);
+function variantGroupsFromTagCatalog(catalog: AttributeGroup[]): ProductVariantGroup[] {
+  return catalog
+    .filter((g) => g.options.length > 0)
+    .map((g) => ({
+      groupId: g.id,
+      groupName: g.name,
+      options: g.options.map((o) => ({ id: o.id, label: o.label })),
+    }));
+}
+
+async function mapProductForSaleAsync(row: {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  unit_price: number;
+}): Promise<ProductForSale> {
+  const catalog = await getProductTagCatalog(row.id);
   return {
     id: row.id,
     name: row.name,
     image_url: row.image_url ?? null,
     unit_price: Number(row.unit_price),
-    variantGroups: specific.length > 0 ? specific : storeVariantGroups,
+    variantGroups: variantGroupsFromTagCatalog(catalog),
   };
 }
 
@@ -150,6 +153,7 @@ const PRODUCT_FOR_SALE_SELECT_NO_IMAGE = `
   unit_price,
   product_attribute_options (
     option_id,
+    label,
     attribute_options (
       id,
       label,
@@ -161,14 +165,18 @@ const PRODUCT_FOR_SALE_SELECT_NO_IMAGE = `
 
 export async function listCatalogProducts(): Promise<ProductForSale[]> {
   const supabase = createSupabaseServer();
-  const catalog = await getAttributeCatalog();
   const first = await supabase
     .from("products")
     .select(PRODUCT_FOR_SALE_SELECT)
     .eq("is_active", true)
     .order("name", { ascending: true });
 
-  type CatalogRow = Parameters<typeof mapProductForSale>[0];
+  type CatalogRow = {
+    id: string;
+    name: string;
+    image_url?: string | null;
+    unit_price: number;
+  };
   let rows: CatalogRow[] | null = (first.data ?? null) as CatalogRow[] | null;
   if (first.error) {
     const m = first.error.message.toLowerCase();
@@ -185,13 +193,11 @@ export async function listCatalogProducts(): Promise<ProductForSale[]> {
     }
   }
 
-  const storeVariantGroups = variantGroupsFromStoreCatalog(catalog);
-  return (rows ?? []).map((row) => mapProductForSale(row, storeVariantGroups));
+  return Promise.all((rows ?? []).map((row) => mapProductForSaleAsync(row)));
 }
 
 export async function getProductForSale(productId: string): Promise<ProductForSale | null> {
   const supabase = createSupabaseServer();
-  const catalog = await getAttributeCatalog();
   const first = await supabase
     .from("products")
     .select(PRODUCT_FOR_SALE_SELECT)
@@ -199,7 +205,12 @@ export async function getProductForSale(productId: string): Promise<ProductForSa
     .eq("is_active", true)
     .maybeSingle();
 
-  type CatalogRow = Parameters<typeof mapProductForSale>[0];
+  type CatalogRow = {
+    id: string;
+    name: string;
+    image_url?: string | null;
+    unit_price: number;
+  };
   let data = first.data as CatalogRow | null;
   if (first.error) {
     const m = first.error.message.toLowerCase();
@@ -218,8 +229,7 @@ export async function getProductForSale(productId: string): Promise<ProductForSa
   }
 
   if (!data) return null;
-  const storeVariantGroups = variantGroupsFromStoreCatalog(catalog);
-  return mapProductForSale(data, storeVariantGroups);
+  return mapProductForSaleAsync(data);
 }
 
 export async function searchProductsForSale(query: string): Promise<ProductSearchHit[]> {

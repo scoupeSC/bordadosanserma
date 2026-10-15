@@ -33,9 +33,9 @@ export function bogotaDateKey(d: Date): string {
   return `${p.year}-${p.month}-${p.day}`;
 }
 
+/** Medianoche del calendario en Colombia (America/Bogota). */
 export function parseDateKey(key: string): Date {
-  const [y, m, day] = key.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, day, 12, 0, 0));
+  return new Date(`${key}T00:00:00-05:00`);
 }
 
 function startOfDayBogota(d: Date): Date {
@@ -44,9 +44,15 @@ function startOfDayBogota(d: Date): Date {
 }
 
 function addDays(d: Date, n: number) {
-  const x = new Date(d);
-  x.setUTCDate(x.getUTCDate() + n);
-  return x;
+  return new Date(d.getTime() + n * 86400000);
+}
+
+/** Fechas inclusive de gastos alineadas al mismo rango que ventas. */
+export function expenseDatesForRange(range: { from: string; to: string }) {
+  const from = bogotaDateKey(new Date(range.from));
+  const lastInstant = new Date(new Date(range.to).getTime() - 1);
+  const to = bogotaDateKey(lastInstant);
+  return { from, to };
 }
 
 function endOfDayExclusive(d: Date) {
@@ -170,7 +176,9 @@ export function formatBucketLabel(key: string, grain: FinanceGrain): string {
   }
   if (grain === "day") {
     const [, m, d] = key.split("-");
-    return `${d}/${m}`;
+    const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    const month = months[Number(m) - 1] ?? m;
+    return `${d} ${month}`;
   }
   if (grain === "month") {
     const [y, m] = key.split("-");

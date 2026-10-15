@@ -14,7 +14,6 @@ export default async function EditarClientePage({ params }: Props) {
   if (!detail) notFound();
 
   const c = detail.customer;
-  const canDelete = detail.stats.salesCount === 0;
 
   return (
     <>
@@ -29,7 +28,6 @@ export default async function EditarClientePage({ params }: Props) {
       <CustomerForm
         mode="edit"
         customerId={id}
-        canDelete={canDelete}
         initial={{
           name: c.name,
           phone: c.phone ?? "",

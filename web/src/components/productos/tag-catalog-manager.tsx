@@ -5,33 +5,50 @@ import { useState, useTransition } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   createAttributeGroup,
-  createAttributeOption,
   deleteAttributeGroup,
   deleteAttributeOption,
   updateAttributeGroup,
   updateAttributeOption,
 } from "@/app/actions/catalog";
+import {
+  createPendingProductTagOption,
+  createProductTagGroup,
+  createProductTagOption,
+  removeProductTagGroupFromProduct,
+  removeProductTagOptionFromProduct,
+  restoreProductTagGroup,
+  setProductTagOptionLinked,
+  updateProductTagGroupName,
+  updateProductTagOptionLabel,
+} from "@/app/actions/product-tags";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import type { AttributeGroup } from "@/lib/types";
 
+type TagGroupRef = { id: string; name: string };
+
 type Props = {
   catalog: AttributeGroup[];
+  hiddenTagGroups?: TagGroupRef[];
   selected: Set<string>;
-  onToggleOption: (optionId: string) => void;
+  onToggleOption: (optionId: string) => void | Promise<void>;
   onOptionRemoved: (optionId: string) => void;
   onGroupRemoved: (groupId: string, optionIds: string[]) => void;
+  productId?: string;
   disabled?: boolean;
 };
 
 export function TagCatalogManager({
   catalog,
+  hiddenTagGroups = [],
   selected,
   onToggleOption,
   onOptionRemoved,
   onGroupRemoved,
+  productId,
   disabled,
 }: Props) {
+  const isProductEdit = Boolean(productId);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +62,10 @@ export function TagCatalogManager({
 
   const busy = disabled || pending;
 
-  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, onSuccess?: () => void) => {
+  const run = (
+    fn: () => Promise<{ ok: boolean; error?: string; info?: string }>,
+    onSuccess?: () => void
+  ) => {
     setError(null);
     startTransition(async () => {
       const result = await fn();
@@ -58,14 +78,91 @@ export function TagCatalogManager({
     });
   };
 
+  const saveGroupName = (groupId: string) => {
+    if (isProductEdit && productId) {
+      run(
+        () => updateProductTagGroupName(productId, groupId, editGroupName),
+        () => setEditingGroupId(null)
+      );
+      return;
+    }
+    run(
+      () => updateAttributeGroup(groupId, editGroupName),
+      () => setEditingGroupId(null)
+    );
+  };
+
+  const saveOptionLabel = (optionId: string) => {
+    if (isProductEdit && productId) {
+      run(
+        () => updateProductTagOptionLabel(productId, optionId, editOptionLabel),
+        () => setEditingOptionId(null)
+      );
+      return;
+    }
+    run(
+      () => updateAttributeOption(optionId, editOptionLabel),
+      () => setEditingOptionId(null)
+    );
+  };
+
+  const addOption = (groupId: string, label: string) => {
+    if (isProductEdit && productId) {
+      run(
+        () => createProductTagOption(productId, groupId, label),
+        () => setNewOptionByGroup((prev) => ({ ...prev, [groupId]: "" }))
+      );
+      return;
+    }
+    run(
+      async () => {
+        const created = await createPendingProductTagOption(groupId, label);
+        if (!created.ok) return created;
+        onToggleOption(created.optionId);
+        return { ok: true as const };
+      },
+      () => setNewOptionByGroup((prev) => ({ ...prev, [groupId]: "" }))
+    );
+  };
+
+  const trashGroup = (group: AttributeGroup) => {
+    if (isProductEdit && productId) {
+      run(() => removeProductTagGroupFromProduct(productId, group.id));
+      return;
+    }
+    run(
+      () => deleteAttributeGroup(group.id),
+      () => onGroupRemoved(group.id, group.options.map((o) => o.id))
+    );
+  };
+
+  const trashOption = (optionId: string, assignedToProduct: boolean) => {
+    if (isProductEdit && productId) {
+      if (assignedToProduct) {
+        run(async () => {
+          const r = await setProductTagOptionLinked(productId, optionId, false);
+          if (r.ok) onOptionRemoved(optionId);
+          return r;
+        });
+        return;
+      }
+      run(() => removeProductTagOptionFromProduct(productId, optionId));
+      return;
+    }
+    if (assignedToProduct) {
+      onOptionRemoved(optionId);
+      return;
+    }
+    run(() => deleteAttributeOption(optionId), () => onOptionRemoved(optionId));
+  };
+
   return (
     <div className="space-y-6">
       {error && <Notice>{error}</Notice>}
 
       {catalog.length === 0 && (
         <p className="text-sm text-[var(--muted)]">
-          Aún no hay categorías. Crea una abajo (ej. <span className="font-semibold text-[var(--ink)]">Color</span> o{" "}
-          <span className="font-semibold text-[var(--ink)]">Talla</span>).
+          No hay categorías visibles. Crea una abajo o restaura una que hayas ocultado.
         </p>
       )}
 
@@ -80,26 +177,10 @@ export function TagCatalogManager({
                   className="field field-sm min-w-0 flex-1 font-semibold"
                   aria-label="Nombre de categoría"
                 />
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-10"
-                  disabled={busy}
-                  onClick={() =>
-                    run(
-                      () => updateAttributeGroup(group.id, editGroupName),
-                      () => setEditingGroupId(null)
-                    )
-                  }
-                >
+                <Button type="button" size="sm" className="h-10" disabled={busy} onClick={() => saveGroupName(group.id)}>
                   Listo
                 </Button>
-                <button
-                  type="button"
-                  className="icon-btn h-10 w-10"
-                  onClick={() => setEditingGroupId(null)}
-                  aria-label="Cancelar"
-                >
+                <button type="button" className="icon-btn h-10 w-10" onClick={() => setEditingGroupId(null)} aria-label="Cancelar">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -122,17 +203,8 @@ export function TagCatalogManager({
                   <button
                     type="button"
                     disabled={busy}
-                    title="Eliminar categoría"
-                    onClick={() =>
-                      run(
-                        () => deleteAttributeGroup(group.id),
-                        () =>
-                          onGroupRemoved(
-                            group.id,
-                            group.options.map((o) => o.id)
-                          )
-                      )
-                    }
+                    title={isProductEdit ? `Quitar ${group.name} de este producto` : "Eliminar categoría"}
+                    onClick={() => trashGroup(group)}
                     className="icon-btn h-8 w-8 hover:bg-[var(--danger-bg)] hover:text-[var(--danger)]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -152,18 +224,7 @@ export function TagCatalogManager({
                       onChange={(e) => setEditOptionLabel(e.target.value)}
                       className="field field-sm min-w-0 flex-1"
                     />
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-10"
-                      disabled={busy}
-                      onClick={() =>
-                        run(
-                          () => updateAttributeOption(opt.id, editOptionLabel),
-                          () => setEditingOptionId(null)
-                        )
-                      }
-                    >
+                    <Button type="button" size="sm" className="h-10" disabled={busy} onClick={() => saveOptionLabel(opt.id)}>
                       Listo
                     </Button>
                   </div>
@@ -182,15 +243,16 @@ export function TagCatalogManager({
                 >
                   <button
                     type="button"
-                    onClick={() => onToggleOption(opt.id)}
+                    disabled={busy}
+                    onClick={() => void onToggleOption(opt.id)}
                     aria-pressed={on}
-                    className="inline-flex h-full items-center gap-1.5 pl-3.5 pr-3 font-semibold"
+                    className="inline-flex h-full items-center gap-1.5 pl-3.5 pr-1 font-semibold"
                   >
                     {on && <Check className="h-3.5 w-3.5" aria-hidden />}
                     {opt.label}
                   </button>
                   <span
-                    className={`mr-1 flex items-center opacity-60 transition-opacity group-hover/chip:opacity-100 sm:opacity-0 ${
+                    className={`mr-1 flex items-center opacity-100 sm:opacity-100 ${
                       on ? "text-white/90" : "text-[var(--muted)]"
                     }`}
                   >
@@ -210,12 +272,7 @@ export function TagCatalogManager({
                       type="button"
                       disabled={busy}
                       title="Eliminar"
-                      onClick={() =>
-                        run(
-                          () => deleteAttributeOption(opt.id),
-                          () => onOptionRemoved(opt.id)
-                        )
-                      }
+                      onClick={() => trashOption(opt.id, on)}
                       className="rounded-full p-1.5 hover:bg-black/10 disabled:opacity-40"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -229,18 +286,13 @@ export function TagCatalogManager({
           <div className="flex gap-2">
             <input
               value={newOptionByGroup[group.id] ?? ""}
-              onChange={(e) =>
-                setNewOptionByGroup((prev) => ({ ...prev, [group.id]: e.target.value }))
-              }
+              onChange={(e) => setNewOptionByGroup((prev) => ({ ...prev, [group.id]: e.target.value }))}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
                   const label = newOptionByGroup[group.id] ?? "";
                   if (!label.trim()) return;
-                  run(
-                    () => createAttributeOption(group.id, label),
-                    () => setNewOptionByGroup((prev) => ({ ...prev, [group.id]: "" }))
-                  );
+                  addOption(group.id, label);
                 }
               }}
               placeholder={`Nuevo valor en ${group.name}…`}
@@ -252,10 +304,7 @@ export function TagCatalogManager({
               aria-label={`Agregar a ${group.name}`}
               onClick={() => {
                 const label = newOptionByGroup[group.id] ?? "";
-                run(
-                  () => createAttributeOption(group.id, label),
-                  () => setNewOptionByGroup((prev) => ({ ...prev, [group.id]: "" }))
-                );
+                addOption(group.id, label);
               }}
               className="icon-btn h-10 w-10 bg-[var(--surface-muted)] text-[var(--ink)]"
             >
@@ -265,11 +314,34 @@ export function TagCatalogManager({
         </section>
       ))}
 
+      {isProductEdit && hiddenTagGroups.length > 0 && productId && (
+        <p className="border-t border-[var(--line)] pt-4 text-sm text-[var(--muted)]">
+          Ocultas en este producto:{" "}
+          {hiddenTagGroups.map((g, i) => (
+            <span key={g.id}>
+              {i > 0 && ", "}
+              <button
+                type="button"
+                disabled={busy}
+                className="font-semibold text-[var(--ink)] underline-offset-2 hover:underline"
+                onClick={() => run(() => restoreProductTagGroup(productId, g.id))}
+              >
+                {g.name}
+              </button>
+            </span>
+          ))}
+        </p>
+      )}
+
       <div className="flex gap-2 border-t border-[var(--line)] pt-5">
         <input
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
-          placeholder="Nueva categoría (ej. Talla)…"
+          placeholder={
+            isProductEdit
+              ? "Nueva categoría solo para este producto…"
+              : "Nueva categoría global (todos los productos)…"
+          }
           className="field field-sm field-quiet min-w-0 flex-1"
         />
         <Button
@@ -278,12 +350,20 @@ export function TagCatalogManager({
           size="sm"
           className="h-10"
           disabled={busy}
-          onClick={() =>
+          onClick={() => {
+            const name = newGroupName;
+            if (isProductEdit && productId) {
+              run(
+                () => createProductTagGroup(productId, name),
+                () => setNewGroupName("")
+              );
+              return;
+            }
             run(
-              () => createAttributeGroup(newGroupName),
+              () => createAttributeGroup(name),
               () => setNewGroupName("")
-            )
-          }
+            );
+          }}
         >
           <Plus className="h-4 w-4" />
           Añadir

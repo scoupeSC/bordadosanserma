@@ -34,6 +34,7 @@ export type ProductRow = {
   created_at: string;
   product_attribute_options: {
     option_id: string;
+    label?: string | null;
     attribute_options: {
       id: string;
       label: string;

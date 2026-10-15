@@ -9,6 +9,7 @@ import {
   storagePathFromPublicUrl,
   validateProductImageFile,
 } from "@/lib/product-image";
+import { claimOrphanTagOptionsForProduct } from "@/app/actions/product-tags";
 
 const productSelectBase = `
   id,
@@ -21,6 +22,7 @@ const productSelectBase = `
   created_at,
   product_attribute_options (
     option_id,
+    label,
     attribute_options (
       id,
       label,
@@ -48,6 +50,7 @@ const productSelectWithSupplies = `
   ),
   product_attribute_options (
     option_id,
+    label,
     attribute_options (
       id,
       label,
@@ -100,6 +103,7 @@ const productSelectBaseNoImage = `
   created_at,
   product_attribute_options (
     option_id,
+    label,
     attribute_options (
       id,
       label,
@@ -126,6 +130,7 @@ const productSelectWithSuppliesNoImage = `
   ),
   product_attribute_options (
     option_id,
+    label,
     attribute_options (
       id,
       label,
@@ -167,7 +172,14 @@ export async function uploadProductImage(
   if (!check.ok) return check;
 
   const supabase = createSupabaseServer();
-  const mime = file.type.toLowerCase();
+  let mime = file.type.toLowerCase();
+  if (!mime || mime === "application/octet-stream") {
+    const name = file.name.toLowerCase();
+    if (name.endsWith(".png")) mime = "image/png";
+    else if (name.endsWith(".webp")) mime = "image/webp";
+    else if (name.endsWith(".gif")) mime = "image/gif";
+    else mime = "image/jpeg";
+  }
   const path = productImageStoragePath(productId, mime);
   const bytes = Buffer.from(await file.arrayBuffer());
 
@@ -326,6 +338,15 @@ async function syncProductOptions(productId: string, optionIds: string[]) {
   const supabase = createSupabaseServer();
   const uniqueOptionIds = [...new Set(optionIds)];
 
+  const { data: existing } = await supabase
+    .from("product_attribute_options")
+    .select("option_id, label")
+    .eq("product_id", productId);
+
+  const labelByOption = new Map(
+    (existing ?? []).map((r) => [r.option_id, r.label as string | null])
+  );
+
   const { error: delErr } = await supabase
     .from("product_attribute_options")
     .delete()
@@ -335,12 +356,27 @@ async function syncProductOptions(productId: string, optionIds: string[]) {
 
   if (uniqueOptionIds.length === 0) return null;
 
-  const { error: linkErr } = await supabase.from("product_attribute_options").insert(
-    uniqueOptionIds.map((option_id) => ({
-      product_id: productId,
-      option_id,
-    }))
-  );
+  const { data: opts } = await supabase
+    .from("attribute_options")
+    .select("id, label")
+    .in("id", uniqueOptionIds);
+
+  const defaultLabel = new Map((opts ?? []).map((o) => [o.id, o.label]));
+
+  const rows = uniqueOptionIds.map((option_id) => ({
+    product_id: productId,
+    option_id,
+    label: labelByOption.get(option_id) ?? defaultLabel.get(option_id) ?? null,
+  }));
+
+  const { error: linkErr } = await supabase.from("product_attribute_options").insert(rows);
+
+  if (linkErr?.message?.includes("label") && linkErr.message.includes("does not exist")) {
+    const { error: legacy } = await supabase.from("product_attribute_options").insert(
+      uniqueOptionIds.map((option_id) => ({ product_id: productId, option_id }))
+    );
+    return legacy?.message ?? null;
+  }
 
   return linkErr?.message ?? null;
 }
@@ -461,6 +497,7 @@ export async function createProduct(input: {
     };
   }
 
+  await claimOrphanTagOptionsForProduct(product.id, input.optionIds);
   const linkError = await syncProductOptions(product.id, input.optionIds);
   if (linkError) {
     await supabase.from("products").delete().eq("id", product.id);

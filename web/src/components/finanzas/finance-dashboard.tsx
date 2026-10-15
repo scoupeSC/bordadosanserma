@@ -46,7 +46,7 @@ const tooltipStyle = {
 export function FinanceDashboard({ initial }: { initial: FinanceDashboardData }) {
   const defaults = defaultCustomRangeKeys();
   const [data, setData] = useState(initial);
-  const [activePreset, setActivePreset] = useState<FinancePreset>("7d");
+  const [activePreset, setActivePreset] = useState<FinancePreset>(initial.preset);
   const [rangeFrom, setRangeFrom] = useState(defaults.from);
   const [rangeTo, setRangeTo] = useState(defaults.to);
   const [rangeError, setRangeError] = useState<string | null>(null);
@@ -63,6 +63,7 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
             customTo: to,
           });
           setData(next);
+          setActivePreset(next.preset);
           setRangeError(null);
         } catch (e) {
           setRangeError(e instanceof Error ? e.message : "No se pudo cargar el periodo");
@@ -92,11 +93,13 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
     load("custom", rangeFrom, rangeTo);
   };
 
+  const periodHint = data.rangeLabel;
+
   const chartData = data.series.map((s) => ({
     name: s.label,
     Ventas: s.revenue,
     Gastos: s.expenses,
-    Utilidad: s.profit,
+    "Dinero actual": s.profit,
     Pedidos: s.orders,
   }));
 
@@ -104,7 +107,7 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
     name: p.name.length > 22 ? `${p.name.slice(0, 22)}…` : p.name,
     fullName: p.name,
     Unidades: p.quantity,
-    Ingresos: p.revenue,
+    Ventas: p.revenue,
   }));
 
   const showCustom = customOpen || activePreset === "custom";
@@ -169,23 +172,43 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
         )}
       </section>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:gap-3 2xl:grid-cols-6">
-        <StatCard label="Ventas" value={formatMoney(data.summary.revenue)} tone="accent" />
-        <StatCard label="Gastos" value={formatMoney(data.summary.expenses)} tone="bad" />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:gap-3 2xl:grid-cols-5">
         <StatCard
-          label="Utilidad"
+          label="Ventas"
+          value={formatMoney(data.summary.revenue)}
+          tone="accent"
+          hint={`Total vendido · ${periodHint}`}
+        />
+        <StatCard
+          label="Gastos"
+          value={formatMoney(data.summary.expenses)}
+          tone="bad"
+          hint={`Gastos registrados · ${periodHint}`}
+        />
+        <StatCard
+          label="Dinero actual"
           value={formatMoney(data.summary.profit)}
           tone={data.summary.profit >= 0 ? "good" : "bad"}
+          hint={`Ventas − gastos · ${periodHint}`}
         />
-        <StatCard label="Pedidos" value={String(data.summary.orders)} />
-        <StatCard label="Unidades" value={String(data.summary.unitsSold)} />
-        <StatCard label="Ticket prom." value={formatMoney(data.summary.avgTicket)} />
+        <StatCard
+          label="Pedidos"
+          value={String(data.summary.orders)}
+          hint={`Ventas completadas · ${periodHint}`}
+        />
+        <StatCard
+          label="Unidades"
+          value={String(data.summary.unitsSold)}
+          hint={`Productos vendidos · ${periodHint}`}
+        />
       </div>
 
       <section className="card card-pad">
         <header>
           <h2 className="text-[15px] font-bold tracking-tight text-[var(--ink)]">Ventas vs gastos</h2>
-          <p className="text-[13px] text-[var(--muted)]">Comparativo en el periodo seleccionado</p>
+          <p className="text-[13px] text-[var(--muted)]">
+            Evolución en {data.rangeLabel} (vista {grainLabel})
+          </p>
         </header>
         <div className="mt-4 h-64 w-full min-w-0 sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -215,7 +238,7 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
               <Bar dataKey="Gastos" fill={CHART_DANGER} radius={[6, 6, 0, 0]} maxBarSize={28} />
               <Line
                 type="monotone"
-                dataKey="Utilidad"
+                dataKey="Dinero actual"
                 stroke={CHART_GOOD}
                 strokeWidth={2.5}
                 dot={false}
@@ -251,7 +274,7 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
                 />
                 <Tooltip
                   formatter={(value, name) =>
-                    name === "Ingresos" ? formatMoney(Number(value ?? 0)) : Number(value ?? 0)
+                    name === "Ventas" ? formatMoney(Number(value ?? 0)) : Number(value ?? 0)
                   }
                   labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
                   contentStyle={tooltipStyle}

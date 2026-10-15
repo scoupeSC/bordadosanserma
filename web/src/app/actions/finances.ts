@@ -2,9 +2,9 @@
 
 import { createSupabaseServer } from "@/lib/supabase/server";
 import {
-  bogotaDateKey,
   bucketKeyForDate,
   buildBucketSeries,
+  expenseDatesForRange,
   formatBucketLabel,
   resolveFinanceRange,
   type FinanceGrain,
@@ -17,7 +17,6 @@ export type FinanceSummary = {
   profit: number;
   orders: number;
   unitsSold: number;
-  avgTicket: number;
 };
 
 export type FinanceSeriesPoint = {
@@ -37,6 +36,7 @@ export type TopProductRow = {
 };
 
 export type FinanceDashboardData = {
+  preset: FinancePreset;
   rangeLabel: string;
   grain: FinanceGrain;
   from: string;
@@ -64,8 +64,7 @@ export async function getFinanceDashboard(input: {
   customTo?: string;
 }): Promise<FinanceDashboardData> {
   const range = resolveFinanceRange(input.preset, input.customFrom, input.customTo);
-  const expenseFrom = range.from.slice(0, 10);
-  const expenseTo = bogotaDateKey(new Date(new Date(range.to).getTime() - 86400000));
+  const expenseDates = expenseDatesForRange(range);
   const supabase = createSupabaseServer();
 
   const [salesRes, expensesRes, itemsRes] = await Promise.all([
@@ -78,8 +77,8 @@ export async function getFinanceDashboard(input: {
     supabase
       .from("expenses")
       .select("amount, expense_date")
-      .gte("expense_date", expenseFrom)
-      .lte("expense_date", expenseTo),
+      .gte("expense_date", expenseDates.from)
+      .lte("expense_date", expenseDates.to),
     supabase
       .from("sale_items")
       .select(
@@ -162,6 +161,7 @@ export async function getFinanceDashboard(input: {
   const profit = revenue - expenseTotal;
 
   return {
+    preset: range.preset,
     rangeLabel: range.label,
     grain: range.grain,
     from: range.from,
@@ -172,7 +172,6 @@ export async function getFinanceDashboard(input: {
       profit,
       orders,
       unitsSold,
-      avgTicket: orders > 0 ? revenue / orders : 0,
     },
     series,
     topProducts,

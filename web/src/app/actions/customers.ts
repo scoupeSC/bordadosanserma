@@ -292,22 +292,29 @@ export async function updateCustomer(
 
 export async function deleteCustomer(id: string) {
   const supabase = createSupabaseServer();
-  const { count, error: countError } = await supabase
-    .from("sales")
-    .select("id", { count: "exact", head: true })
-    .eq("customer_id", id);
 
-  if (countError) return { ok: false as const, error: countError.message };
-  if ((count ?? 0) > 0) {
-    return {
-      ok: false as const,
-      error: "No se puede eliminar: tiene ventas asociadas. Puedes editar sus datos.",
-    };
-  }
+  const { data: customer, error: fetchErr } = await supabase
+    .from("customers")
+    .select("name")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchErr) return { ok: false as const, error: fetchErr.message };
+  if (!customer) return { ok: false as const, error: "Cliente no encontrado" };
+
+  const { error: nameErr } = await supabase
+    .from("sales")
+    .update({ customer_name: customer.name })
+    .eq("customer_id", id)
+    .or("customer_name.is.null,customer_name.eq.");
+
+  if (nameErr) return { ok: false as const, error: nameErr.message };
 
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) return { ok: false as const, error: error.message };
 
   revalidatePath("/clientes");
+  revalidatePath("/ventas", "layout");
+  revalidatePath("/pagos");
   return { ok: true as const };
 }

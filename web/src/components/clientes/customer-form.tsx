@@ -18,10 +18,9 @@ type Props = {
   mode: "create" | "edit";
   customerId?: string;
   initial?: CustomerFormInitial;
-  canDelete?: boolean;
 };
 
-export function CustomerForm({ mode, customerId, initial, canDelete }: Props) {
+export function CustomerForm({ mode, customerId, initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState(initial?.name ?? "");
@@ -86,11 +85,11 @@ export function CustomerForm({ mode, customerId, initial, canDelete }: Props) {
         </form>
       </section>
 
-      {mode === "edit" && customerId && canDelete && (
+      {mode === "edit" && customerId && (
         <section className="card card-pad">
-          <p className="text-sm font-bold text-[var(--ink)]">Zona de cuidado</p>
+          <p className="text-sm font-bold text-[var(--ink)]">Eliminar cliente</p>
           <p className="mt-0.5 mb-3 text-[13px] text-[var(--muted)]">
-            Elimina el cliente solo si no tiene ventas asociadas.
+            Las ventas ya registradas se conservan con el nombre guardado en cada pedido.
           </p>
           <DeleteCustomerButton id={customerId} name={name} />
         </section>

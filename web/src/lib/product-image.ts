@@ -1,4 +1,5 @@
-const MAX_BYTES = 5 * 1024 * 1024;
+export const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = MAX_PRODUCT_IMAGE_BYTES;
 
 const MIME_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -20,7 +21,7 @@ export function validateProductImageFile(file: File): { ok: true } | { ok: false
     return { ok: false, error: "La imagen debe pesar menos de 5 MB" };
   }
   const mime = file.type.toLowerCase();
-  if (!MIME_EXT[mime]) {
+  if (mime && !MIME_EXT[mime]) {
     return { ok: false, error: "Formato no válido. Usa JPG, PNG, WebP o GIF." };
   }
   return { ok: true };

@@ -23,14 +23,12 @@ export function ProductList({ products }: { products: ProductRow[] }) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {products.map((p) => {
-        const tags = p.product_attribute_options
-          .map((row) => row.attribute_options)
-          .filter(Boolean);
-
-        const grouped = tags.reduce<Record<string, string[]>>((acc, t) => {
-          const key = t.attribute_groups.name;
+        const grouped = p.product_attribute_options.reduce<Record<string, string[]>>((acc, row) => {
+          const t = row.attribute_options;
+          if (!t || Array.isArray(t)) return acc;
+          const key = t.attribute_groups?.name ?? "Etiqueta";
           acc[key] ??= [];
-          acc[key].push(t.label);
+          acc[key].push(row.label?.trim() || t.label);
           return acc;
         }, {});
 

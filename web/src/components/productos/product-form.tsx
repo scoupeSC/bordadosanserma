@@ -9,6 +9,7 @@ import {
   suppliesFromInitial,
   type SupplyDraft,
 } from "@/components/productos/product-supplies-editor";
+import { setProductTagOptionLinked } from "@/app/actions/product-tags";
 import {
   createProduct,
   removeProductImage,
@@ -17,6 +18,8 @@ import {
 } from "@/app/actions/products";
 import { ProductImageField } from "@/components/productos/product-image-field";
 import { TagCatalogManager } from "@/components/productos/tag-catalog-manager";
+import type { ProductAssignedTag } from "@/lib/product-utils";
+import type { AttributeGroup } from "@/lib/types";
 import { DeleteProductButton } from "@/components/productos/delete-product-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +28,6 @@ import { Panel } from "@/components/ui/panel";
 import { ToggleRow } from "@/components/ui/toggle-row";
 import { formatMoney } from "@/lib/format";
 import { formatPriceForInput } from "@/lib/product-utils";
-import type { AttributeGroup } from "@/lib/types";
 import type { ProductSupplyPayload } from "@/lib/product-supplies";
 
 export type ProductFormInitial = {
@@ -33,6 +35,7 @@ export type ProductFormInitial = {
   price: number;
   imageUrl?: string | null;
   optionIds: string[];
+  assignedTags?: ProductAssignedTag[];
   trackStock?: boolean;
   stock?: number;
   minStock?: number;
@@ -40,8 +43,11 @@ export type ProductFormInitial = {
   supplies?: { name: string; quantity: number; unit_price: number | null }[];
 };
 
+type TagGroupRef = { id: string; name: string };
+
 type ProductFormProps = {
   catalog: AttributeGroup[];
+  hiddenTagGroups?: TagGroupRef[];
   mode: "create" | "edit";
   productId?: string;
   initial?: ProductFormInitial;
@@ -60,7 +66,13 @@ function applyInitial(initial: ProductFormInitial) {
   };
 }
 
-export function ProductForm({ catalog, mode, productId, initial }: ProductFormProps) {
+export function ProductForm({
+  catalog,
+  hiddenTagGroups = [],
+  mode,
+  productId,
+  initial,
+}: ProductFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const seeded = initial ? applyInitial(initial) : null;
@@ -78,14 +90,92 @@ export function ProductForm({ catalog, mode, productId, initial }: ProductFormPr
   const [clearImage, setClearImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleOption = (optionId: string) => {
+  const catalogMetaById = useMemo(() => {
+    const map = new Map<string, ProductAssignedTag>();
+    for (const g of catalog) {
+      for (const o of g.options) {
+        map.set(o.id, { id: o.id, label: o.label, groupName: g.name });
+      }
+    }
+    return map;
+  }, [catalog]);
+
+  const [tagMeta, setTagMeta] = useState<Record<string, ProductAssignedTag>>(() => {
+    const map: Record<string, ProductAssignedTag> = {};
+    for (const t of initial?.assignedTags ?? []) {
+      map[t.id] = t;
+    }
+    return map;
+  });
+
+  const toggleOption = async (optionId: string) => {
+    const nextLinked = !selected.has(optionId);
+
+    if (mode === "edit" && productId) {
+      setError(null);
+      const result = await setProductTagOptionLinked(productId, optionId, nextLinked);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (nextLinked) next.add(optionId);
+        else next.delete(optionId);
+        return next;
+      });
+      router.refresh();
+      return;
+    }
+
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(optionId)) next.delete(optionId);
       else next.add(optionId);
       return next;
     });
+    const fromCatalog = catalogMetaById.get(optionId);
+    if (fromCatalog) {
+      setTagMeta((prev) => ({ ...prev, [optionId]: fromCatalog }));
+    }
   };
+
+  const displayCatalog = useMemo((): AttributeGroup[] => {
+    const inCatalog = new Set(catalog.flatMap((g) => g.options.map((o) => o.id)));
+    const missing = [...selected].filter((id) => !inCatalog.has(id));
+    if (missing.length === 0) return catalog;
+
+    const groups: AttributeGroup[] = catalog.map((g) => ({
+      ...g,
+      options: [...g.options],
+    }));
+
+    for (const id of missing) {
+      const meta = tagMeta[id];
+      if (!meta) continue;
+      let group = groups.find((g) => g.name === meta.groupName);
+      if (!group) {
+        group = {
+          id: `extra-${meta.groupName}`,
+          name: meta.groupName,
+          slug: meta.groupName.toLowerCase(),
+          display_order: 999,
+          options: [],
+        };
+        groups.push(group);
+      }
+      if (!group.options.some((o) => o.id === id)) {
+        group.options.push({
+          id: meta.id,
+          label: meta.label,
+          slug: meta.label.toLowerCase(),
+          display_order: 0,
+        });
+      }
+    }
+
+    return groups;
+  }, [catalog, selected, tagMeta]);
 
   const selectedCount = selected.size;
 
@@ -312,11 +402,13 @@ export function ProductForm({ catalog, mode, productId, initial }: ProductFormPr
         icon={Tag}
       >
         <TagCatalogManager
-          catalog={catalog}
+          catalog={mode === "edit" ? catalog : displayCatalog}
+          hiddenTagGroups={hiddenTagGroups}
           selected={selected}
           onToggleOption={toggleOption}
           onOptionRemoved={removeOptionFromSelection}
           onGroupRemoved={removeGroupFromSelection}
+          productId={mode === "edit" ? productId : undefined}
           disabled={pending}
         />
       </Panel>

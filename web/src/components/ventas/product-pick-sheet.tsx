@@ -15,8 +15,18 @@ type Props = {
   onAdd: (line: CartLine) => void;
 };
 
+function defaultVariantSelection(groups: ProductForSale["variantGroups"]) {
+  const map: Record<string, string> = {};
+  for (const g of groups) {
+    if (g.options.length === 1) map[g.groupId] = g.options[0]!.id;
+  }
+  return map;
+}
+
 export function ProductPickSheet({ product, onClose, onAdd }: Props) {
-  const [selected, setSelectedVariants] = useState<Record<string, string>>({});
+  const [selected, setSelectedVariants] = useState<Record<string, string>>(() =>
+    defaultVariantSelection(product.variantGroups)
+  );
   const [qty, setQty] = useState(1);
   // El estado se reinicia por producto gracias a `key={product.id}` en el padre.
 

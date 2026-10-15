@@ -6,7 +6,7 @@ import { createCustomer, searchCustomers, type CustomerRow } from "@/app/actions
 import { Button } from "@/components/ui/button";
 import { SearchField } from "@/components/ui/search-field";
 import { Segmented } from "@/components/ui/segmented";
-import { formatMoney } from "@/lib/format";
+import { bogotaTodayDateKey, formatMoney } from "@/lib/format";
 import type { SaleCheckoutInitial } from "@/lib/sale-checkout-initial";
 import {
   orderOptions,
@@ -59,7 +59,9 @@ export const SaleOrderMetaForm = forwardRef<SaleOrderMetaFormHandle, Props>(
       }
       return "";
     });
-    const [deliveryDate, setDeliveryDate] = useState(initial?.deliveryDate ?? "");
+    const [deliveryDate, setDeliveryDate] = useState(
+      initial?.deliveryDate ?? (initial ? "" : bogotaTodayDateKey())
+    );
 
     const parsedAbono = useMemo(() => {
       const n = Number(String(abonoAmount).replace(/,/g, "."));

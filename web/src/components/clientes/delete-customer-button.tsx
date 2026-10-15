@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { Notice } from "@/components/ui/notice";
 
-export function DeleteCustomerButton({ id, name }: { id: string; name: string }) {
+export function DeleteCustomerButton({
+  id,
+  name,
+  compact,
+}: {
+  id: string;
+  name: string;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,9 +38,16 @@ export function DeleteCustomerButton({ id, name }: { id: string; name: string })
 
   return (
     <>
-      <Button type="button" variant="danger" className="w-full" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="danger"
+        size={compact ? "sm" : "md"}
+        className={compact ? "h-9 px-3" : "w-full"}
+        onClick={() => setOpen(true)}
+        aria-label={compact ? `Eliminar ${name}` : undefined}
+      >
         <Trash2 className="h-4 w-4" aria-hidden />
-        Eliminar cliente
+        {compact ? <span className="sr-only sm:not-sr-only">Eliminar</span> : "Eliminar cliente"}
       </Button>
 
       {open && (
@@ -42,8 +57,9 @@ export function DeleteCustomerButton({ id, name }: { id: string; name: string })
             title="¿Eliminar cliente?"
             description={
               <>
-                <strong className="text-[var(--ink)]">{name}</strong> se quitará de la lista de
-                clientes.
+                <strong className="text-[var(--ink)]">{name}</strong> dejará de aparecer en
+                Clientes. Sus ventas anteriores no se borran; siguen en Ventas con el nombre del
+                pedido.
               </>
             }
             onClose={() => setOpen(false)}

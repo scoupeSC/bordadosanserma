@@ -17,6 +17,7 @@ type AttributeOptionRef = {
 
 export type ProductAttributeLink = {
   option_id?: string;
+  label?: string | null;
   attribute_options?: AttributeOptionRef | AttributeOptionRef[] | null;
 };
 
@@ -51,7 +52,8 @@ export function parseVariantGroups(links: ProductAttributeLink[] | null | undefi
     }
 
     if (!entry.options.some((o) => o.id === optId)) {
-      entry.options.push({ id: optId, label: opt.label });
+      const displayLabel = row.label?.trim() || opt.label;
+      entry.options.push({ id: optId, label: displayLabel });
     }
   }
 

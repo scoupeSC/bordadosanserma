@@ -141,7 +141,7 @@ export function PaymentsList({ initialSales }: { initialSales: SaleWithBalance[]
                   <p className="truncate text-[15px] font-bold tracking-tight text-[var(--ink)]">
                     {sale.customer_name}
                   </p>
-                  <p className="text-xs text-[var(--muted)]">Pedido · {formatDate(sale.created_at)}</p>
+                  <p className="text-xs text-[var(--muted)]">Venta · {formatDate(sale.created_at)}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <Chip tone={paymentTone(sale.payment_status)} dot>
                       {paymentLabel(sale.payment_status)}

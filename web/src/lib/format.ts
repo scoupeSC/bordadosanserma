@@ -59,6 +59,16 @@ export function formatDate(value: string) {
   return `${p.day} ${month} ${p.year}`;
 }
 
+/** Hoy en Colombia como YYYY-MM-DD (para inputs type=date). */
+export function bogotaTodayDateKey(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BOGOTA_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 /** Fecha YYYY-MM-DD sin desfase por zona horaria */
 export function formatDeliveryDate(value: string) {
   const [y, m, d] = value.split("-").map(Number);

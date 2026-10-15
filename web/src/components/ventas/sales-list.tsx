@@ -53,7 +53,9 @@ export function SalesList({
                 <p className="truncate text-[15px] font-bold tracking-tight text-[var(--ink)]">
                   {customerName(sale)}
                 </p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">{formatDate(sale.created_at)}</p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  Venta · {formatDate(sale.created_at)}
+                </p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-lg font-bold tabular-nums tracking-tight text-[var(--ink)]">
@@ -75,7 +77,9 @@ export function SalesList({
                 {orderLabel(sale.order_status)}
               </Chip>
               {sale.delivery_date && (
-                <Chip tone="muted">Entrega {formatDeliveryDate(sale.delivery_date)}</Chip>
+                <Chip tone="muted">
+                  Entrega programada · {formatDeliveryDate(sale.delivery_date)}
+                </Chip>
               )}
             </div>
 

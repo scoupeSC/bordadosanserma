@@ -2,6 +2,7 @@
 
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { prepareProductImageForUpload } from "@/lib/product-image-compress";
 import { validateProductImageFile } from "@/lib/product-image";
 
 type Props = {
@@ -22,6 +23,7 @@ export function ProductImageField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -31,22 +33,37 @@ export function ProductImageField({
 
   const displayUrl = preview ?? (!clearExisting ? existingUrl : null);
 
-  const pickFile = (file: File | null) => {
+  const pickFile = async (file: File | null) => {
     setLocalError(null);
     if (!file) {
       onChange(null);
       setPreview(null);
       return;
     }
-    const check = validateProductImageFile(file);
-    if (!check.ok) {
-      setLocalError(check.error);
-      onChange(null);
-      setPreview(null);
-      return;
+
+    setProcessing(true);
+    try {
+      const prepared = await prepareProductImageForUpload(file);
+      if (!prepared.ok) {
+        setLocalError(prepared.error);
+        onChange(null);
+        setPreview(null);
+        return;
+      }
+
+      const check = validateProductImageFile(prepared.file);
+      if (!check.ok) {
+        setLocalError(check.error);
+        onChange(null);
+        setPreview(null);
+        return;
+      }
+
+      onChange(prepared.file);
+      setPreview(URL.createObjectURL(prepared.file));
+    } finally {
+      setProcessing(false);
     }
-    onChange(file);
-    setPreview(URL.createObjectURL(file));
   };
 
   const remove = () => {
@@ -62,13 +79,14 @@ export function ProductImageField({
     <div className="md:col-span-2">
       <span className="label">Foto del producto</span>
       <p className="mt-0.5 text-xs text-[var(--muted)]">
-        Opcional · se muestra en el catálogo de ventas · JPG, PNG o WebP hasta 5 MB.
+        Opcional · catálogo y ventas · cualquier foto del celular o PC (se comprime sola si pesa
+        más de 5 MB).
       </p>
 
       <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
         <button
           type="button"
-          disabled={disabled}
+          disabled={disabled || processing}
           onClick={() => inputRef.current?.click()}
           className={`group relative flex h-40 w-full shrink-0 items-center justify-center overflow-hidden rounded-[14px] transition-colors sm:h-32 sm:w-32 ${
             displayUrl
@@ -92,18 +110,18 @@ export function ProductImageField({
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            accept="image/*"
             className="hidden"
-            disabled={disabled}
-            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+            disabled={disabled || processing}
+            onChange={(e) => void pickFile(e.target.files?.[0] ?? null)}
           />
           <button
             type="button"
-            disabled={disabled}
+            disabled={disabled || processing}
             onClick={() => inputRef.current?.click()}
             className="inline-flex h-10 items-center rounded-[var(--radius-xs)] border border-[var(--line-strong)] bg-[var(--surface)] px-4 text-[13px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-50"
           >
-            {displayUrl ? "Cambiar imagen" : "Elegir archivo"}
+            {processing ? "Procesando…" : displayUrl ? "Cambiar imagen" : "Elegir archivo"}
           </button>
           {displayUrl && (
             <button

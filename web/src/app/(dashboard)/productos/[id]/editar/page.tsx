@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { Pencil } from "lucide-react";
-import { getAttributeCatalog } from "@/app/actions/catalog";
+import { getHiddenProductTagGroups, getProductTagCatalog } from "@/app/actions/product-tags";
 import { getProduct } from "@/app/actions/products";
 import { ProductForm } from "@/components/productos/product-form";
 import { PageHeader } from "@/components/layout/page-header";
-import { extractProductOptionIds } from "@/lib/product-utils";
+import { extractAssignedTags, extractProductOptionIds } from "@/lib/product-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +12,16 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function EditarProductoPage({ params }: PageProps) {
   const { id } = await params;
-  const [product, catalog] = await Promise.all([getProduct(id), getAttributeCatalog()]);
+  const [product, catalog, hiddenTagGroups] = await Promise.all([
+    getProduct(id),
+    getProductTagCatalog(id),
+    getHiddenProductTagGroups(id),
+  ]);
 
   if (!product) notFound();
 
   const optionIds = extractProductOptionIds(product);
+  const assignedTags = extractAssignedTags(product);
   const price = Number(product.unit_price);
   const supplies = [...(product.product_supplies ?? [])].sort(
     (a, b) => a.sort_order - b.sort_order
@@ -27,6 +32,7 @@ export default async function EditarProductoPage({ params }: PageProps) {
     price,
     imageUrl: product.image_url ?? null,
     optionIds,
+    assignedTags,
     trackStock: Boolean(product.track_stock),
     stock: Number(product.stock ?? 0),
     minStock: Number(product.min_stock ?? 0),
@@ -54,6 +60,7 @@ export default async function EditarProductoPage({ params }: PageProps) {
         mode="edit"
         productId={product.id}
         catalog={catalog}
+        hiddenTagGroups={hiddenTagGroups}
         initial={initial}
       />
     </>

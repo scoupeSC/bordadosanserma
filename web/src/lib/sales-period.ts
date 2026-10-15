@@ -36,9 +36,7 @@ function startOfDayBogota(d: Date): Date {
 }
 
 function addDays(d: Date, n: number) {
-  const x = new Date(d);
-  x.setUTCDate(x.getUTCDate() + n);
-  return x;
+  return new Date(d.getTime() + n * 86400000);
 }
 
 function endOfDayExclusive(d: Date) {
