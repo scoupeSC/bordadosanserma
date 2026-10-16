@@ -1,5 +1,5 @@
 /* Service worker mínimo para instalación PWA (Android / Chrome / Edge). */
-const SW_VERSION = "hader-v1";
+const SW_VERSION = "bordados-anserma-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());

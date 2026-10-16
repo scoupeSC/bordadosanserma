@@ -1,6 +1,7 @@
 "use server";
 
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { saleBalance } from "@/lib/sale-labels";
 import {
   bucketKeyForDate,
   buildBucketSeries,
@@ -14,7 +15,10 @@ import {
 export type FinanceSummary = {
   revenue: number;
   expenses: number;
+  /** Ventas − gastos − deudas por cobrar (dinero realmente disponible). */
   profit: number;
+  /** Suma de saldos pendientes en ventas completadas (todos los clientes). */
+  debts: number;
   orders: number;
   unitsSold: number;
 };
@@ -67,7 +71,7 @@ export async function getFinanceDashboard(input: {
   const expenseDates = expenseDatesForRange(range);
   const supabase = createSupabaseServer();
 
-  const [salesRes, expensesRes, itemsRes] = await Promise.all([
+  const [salesRes, expensesRes, itemsRes, balancesRes] = await Promise.all([
     supabase
       .from("sales")
       .select("id, total, created_at")
@@ -93,11 +97,13 @@ export async function getFinanceDashboard(input: {
       .eq("sales.status", "completed")
       .gte("sales.created_at", range.from)
       .lt("sales.created_at", range.to),
+    supabase.from("sales").select("total, amount_paid").eq("status", "completed"),
   ]);
 
   if (salesRes.error) throw new Error(salesRes.error.message);
   if (expensesRes.error) throw new Error(expensesRes.error.message);
   if (itemsRes.error) throw new Error(itemsRes.error.message);
+  if (balancesRes.error) throw new Error(balancesRes.error.message);
 
   const sales = salesRes.data ?? [];
   const expenses = expensesRes.data ?? [];
@@ -158,7 +164,13 @@ export async function getFinanceDashboard(input: {
     .slice(0, 8);
 
   const orders = sales.length;
-  const profit = revenue - expenseTotal;
+
+  let debts = 0;
+  for (const row of balancesRes.data ?? []) {
+    debts += saleBalance(Number(row.total), Number(row.amount_paid ?? 0));
+  }
+
+  const profit = revenue - expenseTotal - debts;
 
   return {
     preset: range.preset,
@@ -170,6 +182,7 @@ export async function getFinanceDashboard(input: {
       revenue,
       expenses: expenseTotal,
       profit,
+      debts,
       orders,
       unitsSold,
     },

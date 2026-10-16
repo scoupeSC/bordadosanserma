@@ -11,6 +11,9 @@ function iconSize(raw: string | null) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const size = iconSize(searchParams.get("size"));
+  const maskable = searchParams.get("maskable") === "1";
+  const logoUrl = new URL("/icons/logo-bordado.png", request.url).toString();
+  const inset = maskable ? Math.round(size * 0.12) : Math.round(size * 0.06);
 
   return new ImageResponse(
     (
@@ -21,15 +24,16 @@ export async function GET(request: Request) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0f1115",
-          borderRadius: size >= 512 ? 96 : 36,
-          color: "#ffffff",
-          fontSize: Math.round(size * 0.42),
-          fontWeight: 700,
-          fontFamily: "system-ui, sans-serif",
+          background: "#000000",
         }}
       >
-        H
+        <img
+          src={logoUrl}
+          alt=""
+          width={size - inset * 2}
+          height={size - inset * 2}
+          style={{ objectFit: "contain" }}
+        />
       </div>
     ),
     { width: size, height: size }

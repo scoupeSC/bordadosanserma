@@ -70,7 +70,7 @@ export function InstallAppButton() {
       return;
     }
     setHint(
-      "En Chrome o Edge: menú ⋮ (arriba a la derecha) → «Instalar aplicación» o «Instalar Hader»."
+      "En Chrome o Edge: menú ⋮ (arriba a la derecha) → «Instalar aplicación» o «Instalar BORDADOS ANSERMA»."
     );
   }, [installEvent]);
 

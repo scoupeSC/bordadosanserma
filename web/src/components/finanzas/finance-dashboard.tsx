@@ -172,7 +172,7 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
         )}
       </section>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:gap-3 2xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-3 lg:gap-3 2xl:grid-cols-6">
         <StatCard
           label="Ventas"
           value={formatMoney(data.summary.revenue)}
@@ -186,10 +186,16 @@ export function FinanceDashboard({ initial }: { initial: FinanceDashboardData })
           hint={`Gastos registrados · ${periodHint}`}
         />
         <StatCard
+          label="Deudas"
+          value={formatMoney(data.summary.debts)}
+          tone={data.summary.debts > 0 ? "bad" : "default"}
+          hint="Por cobrar · Todos los clientes"
+        />
+        <StatCard
           label="Dinero actual"
           value={formatMoney(data.summary.profit)}
           tone={data.summary.profit >= 0 ? "good" : "bad"}
-          hint={`Ventas − gastos · ${periodHint}`}
+          hint={`Ventas − gastos − deudas · ${periodHint}`}
         />
         <StatCard
           label="Pedidos"

@@ -37,7 +37,7 @@ export function SaleInvoiceDocument({ invoice }: { invoice: SaleInvoiceData }) {
               H
             </span>
             <div>
-              <p className="text-[15px] font-bold leading-none tracking-tight">Hader</p>
+              <p className="text-[15px] font-bold leading-none tracking-tight">BORDADOS ANSERMA</p>
               <p className="mt-1 text-[11px] leading-none" style={{ color: "rgba(255,255,255,0.65)" }}>
                 Comprobante de venta
               </p>

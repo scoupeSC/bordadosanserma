@@ -15,21 +15,25 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hader — Ventas e inventario",
-  description: "Sistema modular de ventas e inventario",
-  applicationName: "Hader",
+  title: "BORDADOS ANSERMA",
+  description: "Ventas e inventario — Bordados Anserma",
+  applicationName: "BORDADOS ANSERMA",
   appleWebApp: {
     capable: true,
-    title: "Hader",
-    statusBarStyle: "default",
+    title: "BORDADOS ANSERMA",
+    statusBarStyle: "black-translucent",
   },
   formatDetection: {
     telephone: false,
   },
+  icons: {
+    icon: "/icons/logo-bordado.png",
+    apple: "/icons/logo-bordado.png",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4f5f8",
+  themeColor: "#000000",
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,

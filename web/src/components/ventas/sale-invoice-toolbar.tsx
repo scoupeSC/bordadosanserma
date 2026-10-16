@@ -42,7 +42,7 @@ export function SaleInvoiceToolbar({ saleId, invoiceNumber, justCreated }: Props
           format: [pdfW, Math.max(pdfH, 120)],
         });
         pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
-        pdf.save(`hader-venta-${invoiceNumber}.pdf`);
+        pdf.save(`bordados-anserma-venta-${invoiceNumber}.pdf`);
       } catch {
         setError("No se pudo generar el PDF. Prueba Imprimir o captura de pantalla.");
       }
